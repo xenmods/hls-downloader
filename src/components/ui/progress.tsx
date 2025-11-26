@@ -5,15 +5,15 @@ export const ProgressBar = ({ value }: { value: number }) => {
     <>
       <ProgressPrimitive.Root
         className={
-          "relative h-4 mt-2 w-[300px] overflow-hidden rounded-full bg-gray-200"
+          "relative h-4 mt-2 w-[300px] overflow-hidden rounded-full bg-muted"
         }
       >
         <ProgressPrimitive.Indicator
-          className="h-full w-full flex-1 bg-gray-900 transition-all"
+          className="h-full w-full flex-1 bg-primary transition-all"
           style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
         />
       </ProgressPrimitive.Root>
-      <p className="text-gray-900 mt-2">{Math.round(value || 0)}%</p>
+      <p className="text-muted-foreground mt-2">{Math.round(value || 0)}%</p>
     </>
   );
 };

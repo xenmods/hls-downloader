@@ -1,26 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { EVENTS } from "../constant";
 import Layout from "./layout";
 import Downloader from "../lib/download";
-import { Switch, Tooltip } from "@mui/material";
+import { Switch } from "@/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ProgressBar } from "./ui/progress";
+import { Button } from "@/components/ui/button";
 
 // Define state constants locally
-const START_DOWNLOAD = "START_DOWNLOAD";
 const STARTING_DOWNLOAD = "STARTING_DOWNLOAD";
 const JOB_FINISHED = "JOB_FINISHED";
 const DOWNLOAD_ERROR = "DOWNLOAD_ERROR";
 
 const STATE_NAMES = {
   JOB_FINISHED: "Finished Downloading",
-  START_DOWNLOAD: "Ready to Download",
   STARTING_DOWNLOAD: "Download in Progress",
   DOWNLOAD_ERROR: "Failed to Download",
 };
 
-export default function DownloadPage({ url, headers = {} }) {
-  const [downloadState, setDownloadState] = useState(START_DOWNLOAD);
+export default function DownloadPage({
+  url,
+  headers = {},
+  fileName = `hls-downloader-${new Date()
+    .toLocaleDateString()
+    .replace(/[/]/g, "-")}`,
+}) {
+  const [downloadState, setDownloadState] = useState(STARTING_DOWNLOAD);
   const [sendHeaderWhileFetchingTS, setSendHeaderWhileFetchingTS] =
     useState(false);
   const [additionalMessage, setAdditionalMessage] = useState();
@@ -92,62 +103,53 @@ export default function DownloadPage({ url, headers = {} }) {
     }
   }
 
+  useEffect(() => {
+    startDownload();
+  }, []);
+
   return (
     <Layout>
-      <h2 className="text-2xl lg:text-3xl font-bold mb-4">
+      <h2 className="text-2xl lg:text-3xl font-bold mb-2">
         {STATE_NAMES[downloadState]}
       </h2>
-      <code className="border boder-gray-200 bg-gray-100 px-2 rounded-sm break-all text-center py-2 w-full max-w-3xl">
-        {url}
-      </code>
+      <p className="text-muted-foreground text-sm mb-4">File: {fileName}.mp4</p>
 
-      {downloadState === START_DOWNLOAD && (
-        <div className="flex gap-5 items-center mt-5">
-          {Object.keys(headers).length > 0 && (
-            <Tooltip title="Send custom header while fetching TS segments (If you are facing error, try toggling)">
-              <button
+      {Object.keys(headers).length > 0 && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
                 className="flex items-center"
                 onClick={() =>
                   setSendHeaderWhileFetchingTS(!sendHeaderWhileFetchingTS)
                 }
               >
-                <Switch checked={sendHeaderWhileFetchingTS} />
+                <Switch
+                  checked={sendHeaderWhileFetchingTS}
+                  className="mr-2"
+                />
                 Send header
-              </button>
-            </Tooltip>
-          )}
-
-          <button
-            className="px-4 py-1.5 bg-gray-900 hover:bg-gray-700 text-white rounded-md"
-            onClick={startDownload}
-          >
-            Start Download
-          </button>
-        </div>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Send custom header while fetching TS segments (If you are facing error, try toggling)</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
 
       {additionalMessage && (
-        <p className="text-gray-900 mt-5">{additionalMessage}</p>
+        <p className="text-muted-foreground mt-5">{additionalMessage}</p>
       )}
 
       {downloadBlobUrl && (
         <div className="flex gap-2 items-center">
-          <a
-            href={downloadBlobUrl}
-            download={`hls-downloader-${new Date()
-              .toLocaleDateString()
-              .replace(/[/]/g, "-")}.mp4`}
-            className="px-4 py-1.5 bg-gray-900 hover:bg-gray-700 text-white rounded-md mt-5"
-          >
-            Download now
-          </a>
-
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-1.5 border rounded-md mt-5"
-          >
-            Create new
-          </button>
+          <Button asChild className="mt-5">
+            <a href={downloadBlobUrl} download={`${fileName}.mp4`}>
+              Download now
+            </a>
+          </Button>
         </div>
       )}
 
@@ -158,12 +160,9 @@ export default function DownloadPage({ url, headers = {} }) {
       )}
 
       {downloadState === DOWNLOAD_ERROR && (
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-1.5 bg-gray-900 hover:bg-gray-700 text-white rounded-md mt-5"
-        >
-          Try with different url
-        </button>
+        <Button onClick={startDownload} className="mt-5">
+          Retry
+        </Button>
       )}
     </Layout>
   );
