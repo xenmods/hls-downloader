@@ -23,6 +23,19 @@ export default function HomePage({ setUrl, setHeaders, setFileName }) {
 
   async function validateAndSetUrl(url) {
     toast.loading(`Validating...`, { duration: 800 });
+    try {
+      const response = await fetch(url, { method: "HEAD" });
+      const contentType = response.headers.get("Content-Type");
+
+      if (contentType && contentType.includes("video/mp4")) {
+        setUrl(`${url}?direct=true`);
+        setHeaders(customHeaders);
+        return;
+      }
+    } catch (error) {
+      // Ignore error and proceed with HLS parsing
+    }
+
     let data = await parseHls({ hlsUrl: url, headers: customHeaders });
     if (!data) {
       // I am sure the parser lib returning, instead of throwing error

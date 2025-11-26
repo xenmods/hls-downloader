@@ -27,9 +27,7 @@ const STATE_NAMES = {
 export default function DownloadPage({
   url,
   headers = {},
-  fileName = `hls-downloader-${new Date()
-    .toLocaleDateString()
-    .replace(/[/]/g, "-")}`,
+  fileName = "video",
 }) {
   const [downloadState, setDownloadState] = useState(STARTING_DOWNLOAD);
   const [sendHeaderWhileFetchingTS, setSendHeaderWhileFetchingTS] =
@@ -40,6 +38,16 @@ export default function DownloadPage({
     completed: 0,
     total: 0,
   });
+
+  async function directDownload() {
+    const [baseUrl, queryString] = url.split("?");
+    const params = new URLSearchParams(queryString);
+    params.delete("direct");
+    const newUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+    setDownloadBlobUrl(newUrl);
+    setDownloadState(JOB_FINISHED);
+    setAdditionalMessage();
+  }
 
   async function startDownload() {
     setDownloadState(STARTING_DOWNLOAD);
@@ -104,7 +112,11 @@ export default function DownloadPage({
   }
 
   useEffect(() => {
-    startDownload();
+    if (url.includes("?direct=true")) {
+      directDownload();
+    } else {
+      startDownload();
+    }
   }, []);
 
   return (
@@ -112,7 +124,7 @@ export default function DownloadPage({
       <h2 className="text-2xl lg:text-3xl font-bold mb-2">
         {STATE_NAMES[downloadState]}
       </h2>
-      <p className="text-muted-foreground text-sm mb-4">File: {fileName}.mp4</p>
+      <p className="text-muted-foreground text-sm mb-4">File: {fileName || "video.mp4"}</p>
 
       {Object.keys(headers).length > 0 && (
         <TooltipProvider>
@@ -139,28 +151,47 @@ export default function DownloadPage({
         </TooltipProvider>
       )}
 
-      {additionalMessage && (
-        <p className="text-muted-foreground mt-5">{additionalMessage}</p>
-      )}
-
-      {downloadBlobUrl && (
+      {url.includes("?direct=true") && downloadBlobUrl && (
         <div className="flex gap-2 items-center">
           <Button asChild className="mt-5">
             <a href={downloadBlobUrl} download={`${fileName}.mp4`}>
-              Download now
+              Download Now
             </a>
           </Button>
         </div>
       )}
 
-      {downloadState === STARTING_DOWNLOAD && (
+      {!url.includes("?direct=true") && additionalMessage && (
+        <p className="text-muted-foreground mt-5">{additionalMessage}</p>
+      )}
+
+      {!url.includes("?direct=true") && downloadBlobUrl && (
+        <div className="flex gap-2 items-center">
+          <Button asChild className="mt-5">
+            <a href={downloadBlobUrl} download={`${fileName}.mp4`}>
+              Download Now
+            </a>
+          </Button>
+        </div>
+      )}
+
+      {!url.includes("?direct=true") && downloadState === STARTING_DOWNLOAD && (
         <ProgressBar
           value={(downloadStatus.completed / downloadStatus.total) * 100 || 0}
         />
       )}
 
-      {downloadState === DOWNLOAD_ERROR && (
-        <Button onClick={startDownload} className="mt-5">
+      {!url.includes("?direct=true") && downloadState === DOWNLOAD_ERROR && (
+        <Button
+          onClick={() => {
+            if (url.includes("?direct=true")) {
+              directDownload();
+            } else {
+              startDownload();
+            }
+          }}
+          className="mt-5"
+        >
           Retry
         </Button>
       )}
